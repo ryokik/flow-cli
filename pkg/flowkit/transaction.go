@@ -341,3 +341,28 @@ func (t *Transaction) Sign() (*Transaction, error) {
 func (t *Transaction) shouldSignEnvelope() bool {
 	return t.signer.address == t.tx.Payer
 }
+
+// MultiSign signs transaction using specified signer accounts
+func (t *Transaction) MultiSign(signers []Account) (*Transaction, error) {
+	for _, account := range signers {
+		keyIndex := account.Key().Index()
+		signer, err := account.Key().Signer(context.Background())
+		if err != nil {
+			return nil, err
+		}
+
+		if t.shouldSignEnvelope() {
+			err = t.tx.SignEnvelope(account.address, keyIndex, signer)
+			if err != nil {
+				return nil, fmt.Errorf("failed to sign transaction: %s", err)
+			}
+		} else {
+			err = t.tx.SignPayload(account.address, keyIndex, signer)
+			if err != nil {
+				return nil, fmt.Errorf("failed to sign transaction: %s", err)
+			}
+		}
+	}
+
+	return t, nil
+}
