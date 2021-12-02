@@ -259,3 +259,68 @@ func (t *Transactions) Send(
 
 	return sentTx, res, err
 }
+
+// SendMultiSig a transaction code using multiple signers and arguments for the specified network.
+func (t *Transactions) SendMultiSig(
+	payer *flowkit.Account,
+	signers []flowkit.Account,
+	code []byte,
+	codeFilename string,
+	gasLimit uint64,
+	args []cadence.Value,
+	network string,
+) (*flow.Transaction, *flow.TransactionResult, error) {
+	if t.state == nil {
+		return nil, nil, fmt.Errorf("missing configuration, initialize it: flow state init")
+	}
+
+	payerAddress := payer.Address()
+	signerKeyIndex := payer.Key().Index()
+
+	authorizers := make([]flow.Address, len(signers))
+	for i, signer := range signers{
+		authorizers[i] = signer.Address()
+	}
+
+	tx, err := t.Build(
+		payerAddress,
+		authorizers,
+		payerAddress,
+		signerKeyIndex,
+		code,
+		"",
+		gasLimit,
+		args,
+		"",
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = tx.SetSigner(payer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	signed, err := tx.Sign()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	t.logger.Info(fmt.Sprintf("Transaction ID: %s", signed.FlowTransaction().ID()))
+	t.logger.StartProgress("Sending transaction...")
+	defer t.logger.StopProgress()
+
+	sentTx, err := t.gateway.SendSignedTransaction(signed)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	t.logger.StartProgress("Waiting for transaction to be sealed...")
+
+	res, err := t.gateway.GetTransactionResult(sentTx, true)
+
+	t.logger.StopProgress()
+
+	return sentTx, res, err
+}
