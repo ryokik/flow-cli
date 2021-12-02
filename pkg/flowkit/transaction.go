@@ -342,6 +342,11 @@ func (t *Transaction) shouldSignEnvelope() bool {
 	return t.signer.address == t.tx.Payer
 }
 
+// shouldSignEnvelope checks if signer should sign envelope or payload
+func (t *Transaction) shouldSignPayload() bool {
+	return t.signer.address != t.tx.Payer
+}
+
 // MultiSign signs transaction using specified signer accounts
 func (t *Transaction) MultiSign(signers []Account) (*Transaction, error) {
 	for _, account := range signers {
@@ -351,12 +356,7 @@ func (t *Transaction) MultiSign(signers []Account) (*Transaction, error) {
 			return nil, err
 		}
 
-		if t.shouldSignEnvelope() {
-			err = t.tx.SignEnvelope(account.address, keyIndex, signer)
-			if err != nil {
-				return nil, fmt.Errorf("failed to sign transaction: %s", err)
-			}
-		} else {
+		if t.shouldSignPayload() {
 			err = t.tx.SignPayload(account.address, keyIndex, signer)
 			if err != nil {
 				return nil, fmt.Errorf("failed to sign transaction: %s", err)
