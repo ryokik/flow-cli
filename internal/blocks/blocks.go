@@ -46,6 +46,7 @@ type BlockResult struct {
 	block       *flow.Block
 	events      []client.BlockEvents
 	collections []*flow.Collection
+	result      *flow.ExecutionResult
 	included    []string
 }
 
@@ -105,6 +106,10 @@ func (r *BlockResult) String() string {
 
 		e := events.EventResult{BlockEvents: r.events}
 		_, _ = fmt.Fprintf(writer, "%s", e.String())
+	}
+
+	if r.result != nil {
+		_, _ = fmt.Fprintf(writer, "Previous Result ID\t%s\n", r.result.PreviousResultID)
 	}
 
 	_ = writer.Flush()

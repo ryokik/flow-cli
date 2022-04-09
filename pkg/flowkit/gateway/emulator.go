@@ -199,6 +199,10 @@ func (g *EmulatorGateway) GetBlockByID(id flow.Identifier) (*flow.Block, error) 
 	return convertBlock(block), err
 }
 
+func (g *EmulatorGateway) GetExecutionResultByBlockID(id flow.Identifier) (*flow.ExecutionResult, error) {
+	panic("not implemented")
+}
+
 func (g *EmulatorGateway) GetBlockByHeight(height uint64) (*flow.Block, error) {
 	block, err := g.emulator.GetBlockByHeight(height)
 	return convertBlock(block), err

@@ -155,6 +155,11 @@ func (g *GrpcGateway) GetBlockByID(id flow.Identifier) (*flow.Block, error) {
 	return g.client.GetBlockByID(g.ctx, id)
 }
 
+// GetBlockByID get block by ID from the Flow Access API.
+func (g *GrpcGateway) GetExecutionResultByBlockID(id flow.Identifier) (*flow.ExecutionResult, error) {
+	return g.client.GetExecutionResultForBlockID(g.ctx, id)
+}
+
 // GetBlockByHeight get block by height from the Flow Access API.
 func (g *GrpcGateway) GetBlockByHeight(height uint64) (*flow.Block, error) {
 	return g.client.GetBlockByHeight(g.ctx, height)

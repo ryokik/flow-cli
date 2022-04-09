@@ -36,6 +36,7 @@ type Gateway interface {
 	GetLatestBlock() (*flow.Block, error)
 	GetBlockByHeight(uint64) (*flow.Block, error)
 	GetBlockByID(flow.Identifier) (*flow.Block, error)
+	GetExecutionResultByBlockID(flow.Identifier) (*flow.ExecutionResult, error)
 	GetEvents(string, uint64, uint64) ([]client.BlockEvents, error)
 	GetCollection(flow.Identifier) (*flow.Collection, error)
 	GetLatestProtocolStateSnapshot() ([]byte, error)

@@ -61,7 +61,7 @@ func (e *Blocks) GetBlock(
 	query string,
 	eventType string,
 	verbose bool,
-) (*flow.Block, []client.BlockEvents, []*flow.Collection, error) {
+) (*flow.Block, []client.BlockEvents, []*flow.Collection, *flow.ExecutionResult, error) {
 	e.logger.StartProgress("Fetching Block...")
 	defer e.logger.StopProgress()
 
@@ -75,15 +75,15 @@ func (e *Blocks) GetBlock(
 	} else if flow.HexToID(query) != flow.EmptyID {
 		block, err = e.gateway.GetBlockByID(flow.HexToID(query))
 	} else {
-		return nil, nil, nil, fmt.Errorf("invalid query: %s, valid are: \"latest\", block height or block ID", query)
+		return nil, nil, nil, nil, fmt.Errorf("invalid query: %s, valid are: \"latest\", block height or block ID", query)
 	}
 
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("error fetching block: %s", err.Error())
+		return nil, nil, nil, nil, fmt.Errorf("error fetching block: %s", err.Error())
 	}
 
 	if block == nil {
-		return nil, nil, nil, fmt.Errorf("block not found")
+		return nil, nil, nil, nil, fmt.Errorf("block not found")
 	}
 
 	// if we specify event get events by the type
@@ -91,25 +91,31 @@ func (e *Blocks) GetBlock(
 	if eventType != "" {
 		events, err = e.gateway.GetEvents(eventType, block.Height, block.Height)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 	}
 
 	// if verbose fetch all collections from block too
 	collections := make([]*flow.Collection, 0)
+	executionResult := new(flow.ExecutionResult)
 	if verbose {
 		for _, guarantee := range block.CollectionGuarantees {
 			collection, err := e.gateway.GetCollection(guarantee.CollectionID)
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, nil, nil, err
 			}
 			collections = append(collections, collection)
+		}
+
+		executionResult, err = e.gateway.GetExecutionResultByBlockID(block.ID)
+		if err != nil {
+			return nil, nil, nil, nil, err
 		}
 	}
 
 	e.logger.StopProgress()
 
-	return block, events, collections, err
+	return block, events, collections, executionResult, err
 }
 
 // GetLatestBlockHeight returns the latest block height

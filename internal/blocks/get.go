@@ -50,7 +50,7 @@ func get(
 	_ command.GlobalFlags,
 	services *services.Services,
 ) (command.Result, error) {
-	block, events, collections, err := services.Blocks.GetBlock(
+	block, events, collections, er, err := services.Blocks.GetBlock(
 		args[0], // block id
 		blockFlags.Events,
 		command.ContainsFlag(blockFlags.Include, "transactions"),
@@ -63,6 +63,7 @@ func get(
 		block:       block,
 		events:      events,
 		collections: collections,
+		result:      er,
 		included:    blockFlags.Include,
 	}, nil
 }
