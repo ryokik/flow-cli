@@ -49,7 +49,7 @@ checksum:
   name_template: "checksums.txt"
 release:
   github:
-    owner: onflow
+    owner: ryokik
     name: flow-cli
   prerelease: auto
   draft: false
