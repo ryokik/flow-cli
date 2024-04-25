@@ -46,6 +46,11 @@ type stagingValidator struct {
 	flow  flowkit.Services
 	state *flowkit.State
 
+	// Location of the source code that is used for the update
+	sourceCodeLocation common.Location
+	// Location of the target contract that is being updated
+	targetLocation common.AddressLocation
+
 	// Cache for account contract names so we don't have to fetch them multiple times
 	accountContractNames map[common.Address][]string
 	// All resolved contract code
@@ -99,6 +104,9 @@ func (v *stagingValidator) ValidateContractUpdate(
 	// Code of the updated contract
 	updatedCode []byte,
 ) error {
+	v.sourceCodeLocation = sourceCodeLocation
+	v.targetLocation = location
+
 	// Resolve all system contract code & add to cache
 	v.loadSystemContracts()
 
@@ -153,11 +161,13 @@ func (v *stagingValidator) ValidateContractUpdate(
 		interpreterProgram,
 		v.elaborations,
 	)
+
+	// Set the user defined type change checker
 	chainId, ok := chainIdMap[v.flow.Network().Name]
 	if !ok {
 		return fmt.Errorf("unsupported network: %s", v.flow.Network().Name)
 	}
-	validator.WithUserDefinedTypeChangeChecker(newUserDefinedTypeChangeCheckerFunc(chainId))
+	validator.WithUserDefinedTypeChangeChecker(migrations.NewUserDefinedTypeChangeCheckerFunc(chainId))
 
 	err = validator.Validate()
 	if err != nil {
@@ -190,8 +200,9 @@ func (v *stagingValidator) parseAndCheckContract(
 				// Only checking contracts, so no need to consider script standard library
 				return util.NewStandardLibrary().BaseValueActivation
 			},
-			LocationHandler: v.resolveLocation,
-			ImportHandler:   v.resolveImport,
+			LocationHandler:            v.resolveLocation,
+			ImportHandler:              v.resolveImport,
+			MemberAccountAccessHandler: v.resolveAccountAccess,
 		},
 	)
 	if err != nil {
@@ -379,6 +390,26 @@ func (v *stagingValidator) resolveLocation(
 	return resolvedLocations, nil
 }
 
+func (v *stagingValidator) resolveAccountAccess(checker *sema.Checker, memberLocation common.Location) bool {
+	if checker == nil {
+		return false
+	}
+
+	checkerLocation, ok := checker.Location.(common.StringLocation)
+	if !ok {
+		return false
+	}
+
+	memberAddressLocation, ok := memberLocation.(common.AddressLocation)
+	if !ok {
+		return false
+	}
+
+	// If the source code of the update is being checked, we should check account access based on the
+	// targeted network location of the contract & not the source code location
+	return checkerLocation == v.sourceCodeLocation && memberAddressLocation.Address == v.targetLocation.Address
+}
+
 func (v *stagingValidator) resolveAddressContractNames(address common.Address) ([]string, error) {
 	// Check if the contract names are already cached
 	if names, ok := v.accountContractNames[address]; ok {
@@ -442,31 +473,4 @@ func (a *accountContractNamesProviderImpl) GetAccountContractNames(
 	address common.Address,
 ) ([]string, error) {
 	return a.resolverFunc(address)
-}
-
-// TEMPORARY: this is not exported by flow-go and should be removed once it is
-// This is for a quick fix to get the validator working
-func newUserDefinedTypeChangeCheckerFunc(
-	chainID flow.ChainID,
-) func(oldTypeID common.TypeID, newTypeID common.TypeID) (checked, valid bool) {
-
-	typeChangeRules := map[common.TypeID]common.TypeID{}
-
-	compositeTypeRules := migrations.NewCompositeTypeConversionRules(chainID)
-	for typeID, newStaticType := range compositeTypeRules {
-		typeChangeRules[typeID] = newStaticType.ID()
-	}
-
-	interfaceTypeRules := migrations.NewInterfaceTypeConversionRules(chainID)
-	for typeID, newStaticType := range interfaceTypeRules {
-		typeChangeRules[typeID] = newStaticType.ID()
-	}
-
-	return func(oldTypeID common.TypeID, newTypeID common.TypeID) (checked, valid bool) {
-		expectedNewTypeID, found := typeChangeRules[oldTypeID]
-		if found {
-			return true, expectedNewTypeID == newTypeID
-		}
-		return false, false
-	}
 }
