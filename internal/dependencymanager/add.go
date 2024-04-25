@@ -21,6 +21,8 @@ package dependencymanager
 import (
 	"fmt"
 
+	"github.com/onflow/flow-cli/internal/util"
+
 	"github.com/spf13/cobra"
 
 	"github.com/onflow/flowkit/v2"
@@ -30,11 +32,13 @@ import (
 )
 
 type addFlagsCollection struct {
-	dependencyManagerFlagsCollection
-	name string `default:"" flag:"name" info:"Name of the dependency"`
+	*dependencyManagerFlagsCollection
+	name string
 }
 
-var addFlags = addFlagsCollection{}
+var addFlags = addFlagsCollection{
+	dependencyManagerFlagsCollection: &dependencyManagerFlagsCollection{},
+}
 
 var addCommand = &command.Command{
 	Cmd: &cobra.Command{
@@ -43,8 +47,15 @@ var addCommand = &command.Command{
 		Example: "flow dependencies add testnet://0afe396ebc8eee65.FlowToken",
 		Args:    cobra.ExactArgs(1),
 	},
-	Flags: &addFlags,
 	RunS:  add,
+	Flags: &struct{}{},
+}
+
+func init() {
+	// Add common flags.
+	addFlags.dependencyManagerFlagsCollection.AddToCommand(addCommand.Cmd)
+	// Add command-specific flags.
+	addCommand.Cmd.Flags().StringVar(&addFlags.name, "name", "", "Name of the dependency")
 }
 
 func add(
@@ -54,11 +65,11 @@ func add(
 	flow flowkit.Services,
 	state *flowkit.State,
 ) (result command.Result, err error) {
-	logger.Info(fmt.Sprintf("🔄 Installing dependencies for %s...", args[0]))
+	logger.Info(fmt.Sprintf("%s Installing dependencies for %s...", util.PrintEmoji("🔄"), args[0]))
 
 	dep := args[0]
 
-	installer, err := NewDependencyInstaller(logger, state, addFlags.dependencyManagerFlagsCollection)
+	installer, err := NewDependencyInstaller(logger, state, *addFlags.dependencyManagerFlagsCollection)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error: %v", err))
 		return nil, err
