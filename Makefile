@@ -126,6 +126,7 @@ release:
 prepare-env:
 	rm -f .release-env
 	touch .release-env
+	echo "MIXPANEL_PROJECT_TOKEN=${MIXPANEL_PROJECT_TOKEN}" >> .release-env
 	echo "APP_VERSION=$(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)" >> .release-env
 	echo "BUILD_TIME=$(shell date +%Y-%m-%dT%H:%M:%S%z)" >> .release-env
 	echo "VERSION=${VERSION}" >> .release-env
