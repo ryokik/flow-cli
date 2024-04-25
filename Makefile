@@ -121,3 +121,13 @@ release:
 		-w /go/src/$(PACKAGE_NAME) \
 		ghcr.io/goreleaser/goreleaser-cross:${GOLANG_CROSS_VERSION} \
 		release --clean
+
+.PHONY: prepare-env
+prepare-env:
+	rm -f .release-env
+	touch .release-env
+	echo "APP_VERSION=$(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)" >> .release-env
+	echo "BUILD_TIME=$(shell date +%Y-%m-%dT%H:%M:%S%z)" >> .release-env
+	echo "VERSION=${VERSION}" >> .release-env
+	echo "COMMIT=${COMMIT}" >> .release-env
+	echo "GITHUB_TOKEN=${GITHUB_TOKEN}" >> .release-env
