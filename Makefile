@@ -1,11 +1,7 @@
 # Configuration for goreleaser
 PACKAGE_NAME := github.com/onflow/flow-cli
-GOLANG_CROSS_VERSION ?= v1.20.0
+GOLANG_CROSS_VERSION ?= v1.22.0
 
-# The short Git commit hash
-SHORT_COMMIT := $(shell git rev-parse --short HEAD)
-# The Git commit hash
-COMMIT := $(shell git rev-parse HEAD)
 # The tag of the current commit, otherwise empty
 VERSION := $(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)
 # Name of the cover profile
@@ -33,7 +29,7 @@ install-tools:
 	GO111MODULE=on go install github.com/axw/gocov/gocov@latest; \
 	GO111MODULE=on go install github.com/matm/gocov-html/cmd/gocov-html@latest; \
 	GO111MODULE=on go install github.com/sanderhahn/gozip/cmd/gozip@latest; \
-	GO111MODULE=on go install github.com/vektra/mockery/v2@v2.38.0;
+	GO111MODULE=on go install github.com/vektra/mockery/v2@v2.43.2;
 
 .PHONY: test
 test:
@@ -63,7 +59,7 @@ $(BINARY):
 	GO111MODULE=on go build \
 		-trimpath \
 		-ldflags \
-		"-X github.com/onflow/flow-cli/build.commit=$(COMMIT) -X github.com/onflow/flow-cli/build.semver=$(VERSION) -X github.com/onflow/flow-cli/internal/accounts.accountToken=${ACCOUNT_TOKEN}"\
+		"-X github.com/onflow/flow-cli/build.semver=$(VERSION) -X github.com/onflow/flow-cli/internal/accounts.accountToken=${ACCOUNT_TOKEN}"\
 		-o $(BINARY) ./cmd/flow
 
 .PHONY: versioned-binaries
