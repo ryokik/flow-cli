@@ -1,7 +1,7 @@
 /*
  * Flow CLI
  *
- * Copyright 2019 Dapper Labs, Inc.
+ * Copyright Flow Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ var SetupCommand = &command.Command{
 	Cmd: &cobra.Command{
 		Use:     "init <project name>",
 		Short:   "Start a new Flow project",
-		Example: "flow setup my-project",
+		Example: "flow init my-project",
 		Args:    cobra.MaximumNArgs(1),
 		GroupID: "super",
 	},

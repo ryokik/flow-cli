@@ -1,7 +1,7 @@
 /*
  * Flow CLI
  *
- * Copyright 2019 Dapper Labs, Inc.
+ * Copyright Flow Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,8 @@
 package migrate
 
 import (
-	"fmt"
-
-	"github.com/onflow/cadence"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/onflow/flow-go-sdk"
-	"github.com/onflow/flowkit/v2"
-	"github.com/onflow/flowkit/v2/project"
 	"github.com/spf13/cobra"
 )
 
@@ -57,34 +53,12 @@ func MigrationContractStagingAddress(network string) flow.Address {
 	return flow.HexToAddress(migrationContractStagingAddress[network])
 }
 
-// replaceImportsIfExists replaces imports in the given contract file with the actual contract code
-func replaceImportsIfExists(state *flowkit.State, flow flowkit.Services, location string) ([]byte, error) {
-	code, err := state.ReadFile(location)
-	if err != nil {
-		return nil, fmt.Errorf("error loading contract file: %w", err)
-	}
-
-	contracts, err := state.DeploymentContractsByNetwork(flow.Network())
-	if err != nil {
-		return nil, err
-	}
-
-	importReplacer := project.NewImportReplacer(
-		contracts,
-		state.AliasesForNetwork(flow.Network()),
+func withRetry(operation func() error) error {
+	return backoff.Retry(
+		operation,
+		backoff.WithMaxRetries(
+			backoff.NewExponentialBackOff(),
+			10,
+		),
 	)
-
-	program, err := project.NewProgram(code, []cadence.Value{}, location)
-	if err != nil {
-		return nil, err
-	}
-
-	if program.HasImports() {
-		program, err = importReplacer.Replace(program)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return program.Code(), nil
 }

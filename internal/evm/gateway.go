@@ -1,7 +1,7 @@
 /*
  * Flow CLI
  *
- * Copyright 2024 Flow Foundation, Inc.
+ * Copyright Flow Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -131,10 +131,15 @@ var gatewayCommand = &command.Command{
 
 		ctx, cancel := context.WithCancel(context.Background())
 
-		err = bootstrap.Start(ctx, cfg)
-		if err != nil {
-			panic(err)
-		}
+		ready := make(chan struct{})
+		go func() {
+			err = bootstrap.Run(ctx, cfg, ready)
+			if err != nil {
+				panic(err)
+			}
+		}()
+
+		<-ready
 
 		osSig := make(chan os.Signal, 1)
 		signal.Notify(osSig, syscall.SIGINT, syscall.SIGTERM)

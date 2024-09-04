@@ -1,7 +1,7 @@
 /*
  * Flow CLI
  *
- * Copyright 2019 Dapper Labs, Inc.
+ * Copyright Flow Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,8 +69,8 @@ func newLinter(state *flowkit.State) *linter {
 
 	// Create checker configs for both standard and script
 	// Scripts have a different stdlib than contracts and transactions
-	l.checkerStandardConfig = l.newCheckerConfig(util.NewStandardLibrary())
-	l.checkerScriptConfig = l.newCheckerConfig(util.NewScriptStandardLibrary())
+	l.checkerStandardConfig = l.newCheckerConfig(util.NewCheckerEnvironment())
+	l.checkerScriptConfig = l.newCheckerConfig(util.NewScriptCheckerEnvironment())
 
 	return l
 }
@@ -154,10 +154,13 @@ func (l *linter) lintFile(
 }
 
 // Create a new checker config with the given standard library
-func (l *linter) newCheckerConfig(lib util.StandardLibrary) *sema.Config {
+func (l *linter) newCheckerConfig(env *util.CheckerEnvironment) *sema.Config {
 	return &sema.Config{
-		BaseValueActivationHandler: func(_ common.Location) *sema.VariableActivation {
-			return lib.BaseValueActivation
+		BaseValueActivationHandler: func(location common.Location) *sema.VariableActivation {
+			return env.GetBaseValueActivation(location)
+		},
+		BaseTypeActivationHandler: func(location common.Location) *sema.VariableActivation {
+			return env.GetBaseTypeActivation(location)
 		},
 		AccessCheckMode:            sema.AccessCheckModeStrict,
 		PositionInfoEnabled:        true, // Must be enabled for linters
